@@ -49,7 +49,8 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--arm-pair", choices=["cycle", "00", "01", "10", "11"], default="00")
     p.add_argument("--ready-steps", type=int, default=450)
     p.add_argument("--seed", type=int, default=20260926)
-    p.add_argument("--diversity", type=float, default=0.4)
+    p.add_argument("--diversity", type=float, default=0.25,
+                   help="serve spread; matches the training default")
     p.add_argument("--no-resample-targets", action="store_true")
     p.add_argument("--output", type=Path, help="save a JSON session summary")
     p.add_argument("--video", type=Path, help="record the overview camera at 30 fps")
@@ -62,16 +63,16 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _serve(rng, device, diversity):
-    """Generate the release validation's randomized serve command."""
+    """Serve with the same position, speed, and spin ranges as training."""
     import torch
 
     direction = 1.0 if rng.integers(0, 2) else -1.0
-    position = [-0.35 * direction, rng.uniform(-0.25, 0.25) * diversity,
+    position = [-0.35 * direction, rng.uniform(-0.18, 0.18) * diversity,
                 1.0 + (rng.uniform(0.91, 1.10) - 1.0) * diversity]
     velocity = [direction * (2.0 + (rng.uniform(1.55, 2.45) - 2.0) * diversity),
-                rng.uniform(-0.55, 0.55) * diversity,
+                rng.uniform(-0.35, 0.35) * diversity,
                 0.2 + (rng.uniform(-0.35, 0.55) - 0.2) * diversity]
-    spin = rng.uniform(-14.0, 14.0, (1, 3)) * diversity
+    spin = rng.uniform(-8.0, 8.0, (1, 3)) * diversity
     return tuple(torch.as_tensor(a, device=device, dtype=torch.float32).reshape(1, 3)
                  for a in (position, velocity, spin))
 

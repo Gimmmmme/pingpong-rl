@@ -70,19 +70,33 @@ python -m pytest -q
 
 ## Train and evaluate
 
+Training and inference use the same serve distribution. The default spread is
+`diversity=0.25`: lateral position `±0.18 m`, horizontal speed centered on
+`2.0 m/s`, lateral speed `±0.35 m/s`, and spin `±8 rad/s`. A rally ends when
+the ball drops below the table or leaves the court, and the next serve starts
+immediately.
+
+Train from scratch, or continue the released checkpoint:
+
 ```bash
-python -m pingpong_rl.train --help
-python -m pingpong_rl.evaluate --help
+python -m pingpong_rl.train --num-envs 32 --updates 40 --output outputs/train
+python -m pingpong_rl.train --checkpoint checkpoints/policy.pt --output outputs/train
 ```
 
-Inference opens the Kit window by default. It keeps running, serves a new ball
-after a drop or an out-of-bounds flight, and can be stopped by closing Kit:
+Inference opens the Kit window and keeps serving until the window is closed.
+This is the command used to watch a rally:
 
 ```bash
 python -m pingpong_rl.evaluate --checkpoint checkpoints/policy.pt --arm-pair 00
 ```
 
-For a bounded run or a machine without a display:
+`--arm-pair 00` uses the left hand on both robots. `--arm-pair cycle` rotates
+through all four active-arm combinations. The released checkpoint reads a
+39-dimensional RGB and encoder observation and outputs a 6-dimensional residual
+action. One action is held through a stable stroke and mirrored into the
+right-arm frame.
+
+For a fixed-length run, or a machine without a display:
 
 ```bash
 python -m pingpong_rl.evaluate --checkpoint checkpoints/policy.pt \
@@ -91,10 +105,9 @@ python -m pingpong_rl.evaluate --checkpoint checkpoints/policy.pt \
   --headless --seconds 8 --episodes 1 --arm-pair 00
 ```
 
-`--arm-pair cycle` evaluates all four active-arm combinations. The released
-checkpoint uses a 39-dimensional RGB/encoder actor input and a 6-dimensional
-residual action; the evaluator keeps one action through a stable stroke and
-mirrors it into the right-arm frame, matching the release rollout contract.
+Headless evaluation must set `--seconds` or `--episodes`, because there is no
+window to close. `python -m pingpong_rl.train --help` and
+`python -m pingpong_rl.evaluate --help` list the remaining options.
 
 The scene uses explicit convex collision meshes for the table and each paddle's
 blade and handle. The first reset parks both arms before calibration so the
