@@ -25,13 +25,12 @@ the Sim 6 dependency set.
 
 ## Installer behavior
 
-Run this from the repository root:
-
 ```bash
+git clone https://github.com/Gimmmmme/pingpong-rl.git
+cd pingpong-rl
 ./scripts/install.sh
 source .venv/bin/activate
 export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y
-uv pip install -e .
 ```
 
 The script creates `.venv`, clones or updates the pinned Isaac Lab checkout

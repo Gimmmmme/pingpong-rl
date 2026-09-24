@@ -30,8 +30,8 @@ The upstream [ManipArena Sim repository](https://github.com/maniparena/maniparen
 ## Install
 
 ```bash
-git clone <this-repository>
-cd <this-repository>
+git clone https://github.com/Gimmmmme/pingpong-rl.git
+cd pingpong-rl
 ./scripts/install.sh
 source .venv/bin/activate
 export OMNI_KIT_ACCEPT_EULA=YES ACCEPT_EULA=Y
