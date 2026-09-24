@@ -75,10 +75,31 @@ python -m pingpong_rl.train --help
 python -m pingpong_rl.evaluate --help
 ```
 
-The command-line help is the source of truth for rollout length, seed,
-checkpoint, camera, and device options. A checkpoint is an artifact of a
-particular configuration; record its configuration and checksum with each
-experiment.
+Inference opens the Kit window by default. It keeps running, serves a new ball
+after a drop or an out-of-bounds flight, and can be stopped by closing Kit:
+
+```bash
+python -m pingpong_rl.evaluate --checkpoint checkpoints/policy.pt --arm-pair 00
+```
+
+For a bounded run or a machine without a display:
+
+```bash
+python -m pingpong_rl.evaluate --checkpoint checkpoints/policy.pt \
+  --seconds 30 --episodes 1 --arm-pair 00
+python -m pingpong_rl.evaluate --checkpoint checkpoints/policy.pt \
+  --headless --seconds 8 --episodes 1 --arm-pair 00
+```
+
+`--arm-pair cycle` evaluates all four active-arm combinations. The released
+checkpoint uses a 39-dimensional RGB/encoder actor input and a 6-dimensional
+residual action; the evaluator keeps one action through a stable stroke and
+mirrors it into the right-arm frame, matching the release rollout contract.
+
+The scene uses explicit convex collision meshes for the table and each paddle's
+blade and handle. The first reset parks both arms before calibration so the
+zero-joint USD pose cannot start inside the tabletop. `ball_needs_reset()` is
+an evaluator-only boundary check and is never included in policy observations.
 
 ## Layout
 

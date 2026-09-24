@@ -35,8 +35,10 @@ PADDLE_RADIUS = 0.10
 ARM_NAMES = ("left", "right")
 CAMERA_NAMES = ("camera_left", "camera_right", "camera_demo")
 CAMERA_EYES = {
-    "camera_left": (-0.65, -1.65, 1.65),
-    "camera_right": (0.65, -1.65, 1.65),
+    # Raised, opposing stereo views keep the ball above the table visible
+    # during a fast rally and match the released RGB deployment calibration.
+    "camera_left": (-0.55, -0.65, 2.30),
+    "camera_right": (0.55, 0.65, 2.30),
     "camera_demo": (2.1, -2.1, 1.9),
 }
 CAMERA_TARGET = (0.0, 0.0, 0.90)
@@ -98,7 +100,7 @@ def make_scene_cfg(
     *,
     env_spacing: float = 3.5,
     base_distance: float = 0.95,
-    base_y: float = 0.29,
+    base_y: float = 0.0,
     base_height: float = 0.62,
     cameras: bool = False,
 ) -> InteractiveSceneCfg:

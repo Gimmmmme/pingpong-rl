@@ -78,7 +78,9 @@ def _collision(prim,physics_material,collision):
     UsdPhysics.CollisionAPI.Apply(prim).CreateCollisionEnabledAttr(True)
     UsdPhysics.MeshCollisionAPI.Apply(prim).CreateApproximationAttr('convexHull')
     api=PhysxSchema.PhysxCollisionAPI.Apply(prim)
-    api.CreateContactOffsetAttr(float(getattr(collision,'contact_offset',.001)))
+    # Sit the contact shell outside the visible blade so a stiff arm drive
+    # stops on the table instead of drawing the mesh through it.
+    api.CreateContactOffsetAttr(max(float(getattr(collision,'contact_offset',.001)),.006))
     api.CreateRestOffsetAttr(float(getattr(collision,'rest_offset',0.)))
     UsdShade.MaterialBindingAPI.Apply(prim).Bind(physics_material,materialPurpose='physics')
 
@@ -95,6 +97,10 @@ def attach_paddle_to_link(stage:Any,link_path:str,sim:Any,collision:Any,material
                           *,offset=PADDLE_OFFSET_V2,prefix='PingPongPaddleV2')->dict[str,str]:
     """Add a complete racket before physics starts, directly under terminal link."""
     from pxr import UsdGeom
+    # The terminal link is already a dynamic rigid body from the robot USD.
+    # Keep collision on the explicit Blade/Handle meshes below; applying a
+    # collision schema to the link Xform would also include its inherited
+    # visual mesh as a dynamic triangle collider in PhysX.
     base=link_path+'/'+prefix
     UsdGeom.Xform.Define(stage,base)
     paths={name:base+'/'+name for name in PADDLE_PRIMITIVE_NAMES}

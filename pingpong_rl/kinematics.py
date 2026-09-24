@@ -23,7 +23,7 @@ def qrot(q,v):
     uv=torch.cross(q[...,:3],v,dim=-1);return v+2*(q[...,3:4]*uv+torch.cross(q[...,:3],uv,dim=-1))
 
 
-def paddle_kinematics(q, base_pos=(-.95,.29,.62), base_quat=(0.,0.,0.,1.), paddle_offset=(.235,0.,0.)):
+def paddle_kinematics(q, base_pos=(-.95,0.,.62), base_quat=(0.,0.,0.,1.), paddle_offset=(.235,0.,0.)):
     """Return paddle pos[... ,3], orientation[... ,4], Jacobian[... ,6,6]."""
     if not isinstance(q,torch.Tensor):q=torch.as_tensor(q,dtype=torch.float32)
     if q.shape[-1]!=6:raise ValueError('Expected six-joint arm encoder angles')
@@ -50,9 +50,9 @@ def self_test():
         qd=q.clone();qd[:,k]+=eps;pd,_,_=paddle_kinematics(qd)
         assert torch.max((((pd-p)/eps)-j[:,:3,k]).abs())<2e-6
     p0,r0,_=paddle_kinematics(torch.zeros(1,6))
-    assert torch.allclose(p0,torch.tensor([[-.5965,.024,.802898154]]),atol=1e-6)
-    p1,r1,_=paddle_kinematics(torch.zeros(1,6),base_pos=(.95,-.29,.62),base_quat=(0,0,1,0))
-    assert torch.allclose(p1,torch.tensor([[.5965,-.024,.802898154]]),atol=1e-6)
+    assert torch.allclose(p0,torch.tensor([[-.5965,-.266,.802898154]]),atol=1e-6)
+    p1,r1,_=paddle_kinematics(torch.zeros(1,6),base_pos=(.95,0.,.62),base_quat=(0,0,1,0))
+    assert torch.allclose(p1,torch.tensor([[.5965,.266,.802898154]]),atol=1e-6)
     print('encoder FK finite-difference Jacobian and mirror tests passed')
 
 if __name__=='__main__':self_test()

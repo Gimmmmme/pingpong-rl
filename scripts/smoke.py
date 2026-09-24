@@ -18,7 +18,9 @@ def main() -> int:
         import torch
         from pingpong_rl.environment import PingPongEnv
         env = PingPongEnv(args.num_envs, args.device, cameras=args.cameras)
-        active = torch.tensor([[1, 0]] * args.num_envs, device=args.device, dtype=torch.long)
+        # Keep both paddles on the same canonical side for the geometry smoke
+        # test; mixed pairs are reserved for the rally evaluator's cycle mode.
+        active = torch.tensor([[0, 0]] * args.num_envs, device=args.device, dtype=torch.long)
         env.set_active_arms(active)
         env.reset()
         target = torch.zeros((args.num_envs, 2, 6), device=args.device)

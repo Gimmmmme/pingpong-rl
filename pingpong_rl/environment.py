@@ -64,7 +64,7 @@ class PingPongEnv:
         cameras: bool = False,
         dt: float = DT,
         base_distance: float = 0.95,
-        base_y: float = 0.29,
+        base_y: float = 0.0,
         base_height: float = 0.62,
     ):
         from isaaclab.sim import SimulationCfg, SimulationContext
@@ -187,7 +187,13 @@ class PingPongEnv:
         # Backward-compatible aliases select the right arm on each robot.
         self.joint_ids = [arms[1] for arms in self.joint_ids_by_arm]
         self.body_ids = [arms[1] for arms in self.body_ids_by_arm]
+        # The USD zero pose puts the long handle through the tabletop.  Use
+        # the same parked first-joint posture as the rally ready calibration
+        # for the very first reset, so the scene never starts interpenetrating.
         self.home = [_tensor(robot.data.default_joint_pos).clone() for robot in self.robots]
+        for home, arm_ids in zip(self.home, self.joint_ids_by_arm):
+            home[:, arm_ids[0][0]] = 0.9
+            home[:, arm_ids[1][0]] = -0.9
         self.targets = self._home_targets()
         self.reset()
 
@@ -322,19 +328,26 @@ class PingPongEnv:
     def camera_calibration(self) -> dict[str, dict]:
         """Return fixed camera intrinsics/extrinsics for the vision module."""
         import numpy as np
-        from isaaclab.utils.math import matrix_from_quat
+        from .vision import CameraModel
 
         result = {}
         for name in CAMERA_NAMES:
             camera = self.scene[name]
             K = _tensor(camera.data.intrinsic_matrices)[0].detach().cpu().numpy()
-            position = _tensor(camera.data.pos_w)[0].detach().cpu().numpy()
-            quat = _tensor(camera.data.quat_w_ros)[0].detach().cpu().numpy()
-            R_wc = matrix_from_quat(_tensor(camera.data.quat_w_ros))[0].detach().cpu().numpy()
+            # Isaac Lab's camera ``pos_w``/``quat_w_ros`` buffers can remain
+            # at their pre-view values after set_world_poses_from_view while
+            # the renderer already uses the new pose.  The scene owns this
+            # calibrated pose, so derive the extrinsics from the same look-at
+            # inputs used by _configure_cameras.
+            origin = self.origins[0].detach().cpu().numpy()
+            position = np.asarray(self.camera_poses[name], dtype=np.float64) + origin
+            target = np.asarray(CAMERA_TARGET, dtype=np.float64) + origin
+            model = CameraModel.look_at(name, K, position, target, width=640, height=480)
+            R_wc = model.R_wc
             result[name] = {
                 "K": np.asarray(K).tolist(),
                 "position_world": np.asarray(position).tolist(),
-                "quat_xyzw_ros": np.asarray(quat).tolist(),
+                "center_world": np.asarray(position).tolist(),
                 "R_wc": np.asarray(R_wc).tolist(),
                 "width": 640,
                 "height": 480,
@@ -353,6 +366,23 @@ class PingPongEnv:
             "paddle_normal": paddle_normal,
             "active_arms": self.active_arms.clone(),
         }
+
+    def ball_needs_reset(self) -> torch.Tensor:
+        """Return a reset mask for a ball that has left the playable court.
+
+        This is an evaluator boundary check used after an action.  It is not
+        exposed to the actor observation.  The lower threshold is below the
+        table and catches a missed return before the ball can tunnel through
+        the floor; the lateral limits catch balls that leave the court.
+        """
+        position = _tensor(self.ball.data.root_pos_w) - self.origins
+        velocity = _tensor(self.ball.data.root_lin_vel_w)
+        return (
+            (position[:, 2] < TABLE_TOP - 0.14)
+            | (position[:, 0].abs() > TABLE_SIZE[0] / 2 + 0.18)
+            | (position[:, 1].abs() > TABLE_SIZE[1] / 2 + 0.18)
+            | ((position[:, 2] < BALL_RADIUS + 0.025) & (velocity[:, 2] < 0.0))
+        )
 
     def evaluation_contacts(self):
         return _tensor(self.scene["ball_contacts"].data.net_forces_w).clone()

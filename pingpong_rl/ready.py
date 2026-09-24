@@ -55,6 +55,8 @@ def prepare_ready_homes(env, controller, callback=None, steps: int = 450):
         env.reset()
         _clear_filter(controller)
         for step in range(steps):
+            if hasattr(controller, "sync"):
+                controller.sync(env)
             targets = controller.step(ball, torch.zeros_like(ball), action, confidence)
             env.step(targets, render=env.cameras and step % 4 == 3)
         ready.append([tensor(robot.data.joint_pos).clone() for robot in env.robots])

@@ -125,6 +125,17 @@ class BallisticResidualController:
         self.landing_y=torch.zeros(self.n,2,device=self.device)
         self.last_paddle_pos=None; self.paddle_velocity=torch.zeros(self.n,2,3,device=self.device)
 
+    def reset(self):
+        """Clear temporal controller state at a new serve."""
+        self.last_action.zero_()
+        self.last_targets = torch.stack(self.home, 1).clone()
+        self.target_pos.zero_()
+        self.target_quat.zero_()
+        self.intercept_time.fill_(1.0)
+        self.landing_y.zero_()
+        self.last_paddle_pos = None
+        self.paddle_velocity.zero_()
+
     def set_landing_targets(self, y):
         y=torch.as_tensor(y,dtype=torch.float32,device=self.device)
         if tuple(y.shape)!=(self.n,2): raise ValueError(f'landing targets must be [{self.n},2]')
@@ -228,6 +239,10 @@ class BallisticResidualController:
             base=torch.where(active[:,None],base,ready)
             ready_n=torch.zeros_like(normal); ready_n[:,0]=inward; ready_n[:,2]=.16
             normal=torch.where(active[:,None],normal,unit(ready_n))
+            # Blade half-extent is about 9 cm. A tilted face reaches below its
+            # center, so keep that lowest point above the table top.
+            drop=.090*torch.sqrt((1-normal[:,2].square()).clamp(min=0))+.008
+            base[:,2]=torch.maximum(base[:,2],cfg.table_z+.012+drop)
             targets.append(base); orientations.append(normal_quat(normal,self.normal_axis)); impacts.append(time); phases.append(active.float())
         self.target_pos=torch.stack(targets,1); self.target_quat=torch.stack(orientations,1); self.intercept_time=torch.stack(impacts,1)
         self.last_action=a; return self.target_pos,self.target_quat,torch.stack(phases,1)
@@ -262,7 +277,7 @@ class BallisticResidualController:
         self.last_targets=torch.stack(results,1); return self.last_targets
 
     def observation(self, estimated_pos, estimated_vel, confidence=None):
-        """[N,2,36], canonical player-frame observations for one shared actor.
+        """[N,2,39], canonical player-frame observations for one shared actor.
 
         Robot 1 is rotated pi around world Z to match Robot 0. Static table
         calibration and proprioception are permitted at deployment time.
