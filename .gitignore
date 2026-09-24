@@ -1,0 +1,32 @@
+# Python/editor caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Generated experiment output
+runs/
+outputs/
+logs/
+*.log
+*.jsonl
+
+# Large generated checkpoints and media
+*.pt
+*.pth
+*.mp4
+*.avi
+
+# Keep explicitly reviewed release assets when they are restored.
+!checkpoints/initial_checkpoint.pt
+!checkpoints/policy.pt

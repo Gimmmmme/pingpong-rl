@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pingpong-rl"
+version = "0.1.0"
+description = "Standalone Isaac Lab table-tennis reinforcement learning"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+dependencies = [
+  "numpy>=2",
+  "opencv-python>=4.8",
+  "torch>=2.10",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pingpong_rl*"]
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.data-files]
+"assets/bimanual_robot" = ["assets/bimanual_robot/bimanual_robot.usd"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
